@@ -1,0 +1,13 @@
+# Build output
+target/
+
+# IDE / editor files
+.idea/
+.vscode/
+nbproject/
+*.iml
+
+# OS / runtime noise
+.DS_Store
+Thumbs.db
+hs_err_pid*
