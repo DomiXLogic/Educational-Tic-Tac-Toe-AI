@@ -225,6 +225,16 @@ Why this matters:
 - the player does not need to install Java separately
 - it is suitable for sharing on GitHub releases with students or other users
 
+### Prebuilt installer
+
+A ready-to-use Windows installer is already included in this repository:
+
+- [installers/Tic-Tac-Toe AI-1.0.0.exe](installers/Tic-Tac-Toe%20AI-1.0.0.exe)
+
+This means a user can download the `.exe`, run the installer, and play without installing Java manually.
+
+### Build locally
+
 To build the installer locally on Windows:
 
 ```powershell
