@@ -6,34 +6,32 @@ import java.util.List;
 
 public final class Board {
 
-    private static final int[][] WINNING_LINES = {
-        {0, 1, 2},
-        {3, 4, 5},
-        {6, 7, 8},
-        {0, 3, 6},
-        {1, 4, 7},
-        {2, 5, 8},
-        {0, 4, 8},
-        {2, 4, 6}
-    };
-
     private final char[] cells;
     private final Player currentPlayer;
+    private final BoardSize boardSize;
 
     public Board() {
-        this(Player.X);
+        this(Player.X, BoardSize.THREE);
     }
 
     public Board(Player currentPlayer) {
-        this(new char[9], currentPlayer);
+        this(currentPlayer, BoardSize.THREE);
     }
 
-    private Board(char[] cells, Player currentPlayer) {
+    public Board(Player currentPlayer, BoardSize boardSize) {
+        this(new char[boardSize.getCellCount()], currentPlayer, boardSize);
+    }
+
+    private Board(char[] cells, Player currentPlayer, BoardSize boardSize) {
         if (currentPlayer == Player.EMPTY) {
             throw new IllegalArgumentException("Starting player cannot be EMPTY.");
         }
+        if (cells.length != boardSize.getCellCount()) {
+            throw new IllegalArgumentException("Cell count does not match board size " + boardSize + ".");
+        }
         this.cells = normalize(cells);
         this.currentPlayer = currentPlayer;
+        this.boardSize = boardSize;
     }
 
     private static char[] normalize(char[] source) {
@@ -48,6 +46,22 @@ public final class Board {
 
     public Player getCurrentPlayer() {
         return currentPlayer;
+    }
+
+    public BoardSize getBoardSize() {
+        return boardSize;
+    }
+
+    public int getSize() {
+        return boardSize.getBoardDimension();
+    }
+
+    public int getCellCount() {
+        return cells.length;
+    }
+
+    public int getWinLength() {
+        return boardSize.getWinLength();
     }
 
     public Player getCell(int index) {
@@ -69,7 +83,7 @@ public final class Board {
 
         char[] next = Arrays.copyOf(cells, cells.length);
         next[index] = currentPlayer.getSymbol();
-        return new Board(next, currentPlayer.opponent());
+        return new Board(next, currentPlayer.opponent(), boardSize);
     }
 
     public List<Integer> getAvailableMoves() {
@@ -86,23 +100,15 @@ public final class Board {
     }
 
     public Player getWinner() {
-        for (int[] line : WINNING_LINES) {
-            Player player = getLineWinner(line);
-            if (player != Player.EMPTY) {
-                return player;
-            }
+        int[] line = findWinningLine();
+        if (line.length == 0) {
+            return Player.EMPTY;
         }
-        return Player.EMPTY;
+        return getCell(line[0]);
     }
 
     public int[] getWinningLine() {
-        for (int[] line : WINNING_LINES) {
-            Player player = getLineWinner(line);
-            if (player != Player.EMPTY) {
-                return Arrays.copyOf(line, line.length);
-            }
-        }
-        return new int[0];
+        return findWinningLine();
     }
 
     public boolean isDraw() {
@@ -114,7 +120,55 @@ public final class Board {
     }
 
     public Board copy() {
-        return new Board(cells, currentPlayer);
+        return new Board(cells, currentPlayer, boardSize);
+    }
+
+    public List<int[]> getPotentialWinningLines() {
+        List<int[]> lines = new ArrayList<>();
+        int boardDimension = getSize();
+        int winLength = getWinLength();
+
+        for (int row = 0; row < boardDimension; row++) {
+            for (int column = 0; column <= boardDimension - winLength; column++) {
+                int[] line = new int[winLength];
+                for (int offset = 0; offset < winLength; offset++) {
+                    line[offset] = row * boardDimension + (column + offset);
+                }
+                lines.add(line);
+            }
+        }
+
+        for (int column = 0; column < boardDimension; column++) {
+            for (int row = 0; row <= boardDimension - winLength; row++) {
+                int[] line = new int[winLength];
+                for (int offset = 0; offset < winLength; offset++) {
+                    line[offset] = (row + offset) * boardDimension + column;
+                }
+                lines.add(line);
+            }
+        }
+
+        for (int row = 0; row <= boardDimension - winLength; row++) {
+            for (int column = 0; column <= boardDimension - winLength; column++) {
+                int[] line = new int[winLength];
+                for (int offset = 0; offset < winLength; offset++) {
+                    line[offset] = (row + offset) * boardDimension + (column + offset);
+                }
+                lines.add(line);
+            }
+        }
+
+        for (int row = 0; row <= boardDimension - winLength; row++) {
+            for (int column = winLength - 1; column < boardDimension; column++) {
+                int[] line = new int[winLength];
+                for (int offset = 0; offset < winLength; offset++) {
+                    line[offset] = (row + offset) * boardDimension + (column - offset);
+                }
+                lines.add(line);
+            }
+        }
+
+        return lines;
     }
 
     private boolean isBoardFull() {
@@ -126,14 +180,28 @@ public final class Board {
         return true;
     }
 
-    private Player getLineWinner(int[] line) {
+    private int[] findWinningLine() {
+        for (int[] line : getPotentialWinningLines()) {
+            if (isWinningLine(line)) {
+                return line;
+            }
+        }
+
+        return new int[0];
+    }
+
+    private boolean isWinningLine(int[] line) {
         char first = cells[line[0]];
         if (first == Player.EMPTY.getSymbol()) {
-            return Player.EMPTY;
+            return false;
         }
-        return first == cells[line[1]] && first == cells[line[2]]
-                ? Player.fromSymbol(first)
-                : Player.EMPTY;
+
+        for (int i = 1; i < line.length; i++) {
+            if (cells[line[i]] != first) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void validateIndex(int index) {

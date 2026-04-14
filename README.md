@@ -10,6 +10,7 @@ An educational Java Swing project that helps students compare two different ways
 
 - a deterministic algorithm that always calculates the optimal move
 - a simulation-based AI that improves through repeated trials and controlled randomness
+- a scalable ruleset that extends the game from `3x3` up to `6x6`
 
 ![Game UI](assets/GameUI.png)
 
@@ -43,6 +44,8 @@ Minimax explores the game tree, evaluates all relevant outcomes, and chooses the
 - predictable and repeatable behavior
 
 This is useful for teaching what a solved game looks like when a computer uses exact search.
+
+For larger boards, the same mode transitions into **heuristic alpha-beta search** instead of full exact search. This is also educational, because it shows students where exact search stops being practical and where evaluation heuristics become necessary.
 
 ### 2. Simulation-based AI behavior
 
@@ -94,21 +97,39 @@ That creates an educational problem:
 - the slider appears to change numbers more than behavior
 - the contrast with Minimax becomes weaker
 
-To solve that, this project introduces **controlled imperfection** at lower MCTS settings.
+To solve that, this project introduces **controlled imperfection** through a dedicated **Artificial Stupidity** setting.
 
 The key idea is this:
 
 - the AI still performs real MCTS search
 - the search results still matter
-- but the final action selection becomes more stochastic at lower simulation budgets
+- the simulation budget still controls how much search work is done
+- Artificial Stupidity can be enabled or disabled entirely
+- when it is enabled, a separate Artificial Stupidity level controls how strongly the final move selection is softened
 
-So at lower settings, the AI is more willing to:
+When Artificial Stupidity is **off**, the implementation uses its strongest hybrid behavior and keeps a tactical safety layer for MCTS:
+
+- immediate winning moves are always taken
+- immediate losing replies are avoided when a safe alternative exists
+- open-ended tactical threats are handled more aggressively
+
+This keeps the strongest MCTS mode from looking arbitrarily blind in obvious tactical positions.
+
+When Artificial Stupidity is **on**, those teaching-oriented imperfections are allowed again.
+
+At higher Artificial Stupidity settings, the AI is more willing to:
 
 - choose among several strong moves probabilistically
 - behave less deterministically
 - remain beatable and easier to compare against Minimax
 
-At higher settings, that imperfection is reduced, so the MCTS opponent becomes stronger and more consistent.
+At lower Artificial Stupidity settings, the behavior is still softened, but much less aggressively.
+
+So the practical interpretation is:
+
+- **AS Off**: strongest version of this project’s MCTS, with tactical guardrails enabled
+- **AS On + Super Low**: only a small amount of visible imperfection
+- **AS On + Extra High**: the loosest, most visibly imperfect behavior
 
 This is not a bug and it is not "fake AI". It is a teaching-oriented application of Artificial Stupidity: the intelligence is real, but the final behavior is shaped so that students can more clearly observe the tradeoff between strength, approximation, and playability.
 
@@ -121,11 +142,12 @@ Use this mode to demonstrate:
 - perfect adversarial search
 - deterministic decision making
 - what "optimal play" means in a solved game
+- how algorithmic search changes when the board becomes too large for exact analysis
 
 Expected outcome:
 
-- the computer should never lose
-- the best result for the human player is a draw
+- on `3x3`, the computer should never lose and the best human result is a draw
+- on larger boards, the mode remains algorithmic, but uses heuristic depth-limited search instead of perfect full-tree search
 
 ### Human vs AI (MCTS)
 
@@ -135,12 +157,74 @@ Use this mode to demonstrate:
 - approximate rather than exact decision making
 - how additional computation can improve behavior
 
-The MCTS slider changes the simulation budget.
+The MCTS controls are split into two ideas:
 
-- lower values: faster, weaker, more human-like play
-- higher values: stronger, more consistent play
+- **Simulations**: how much search work the algorithm performs
+- **Artificial Stupidity**: whether controlled imperfection is enabled, and if so, how strongly it is applied after the search is finished
+
+There are now two parts to this control:
+
+- **Enable Artificial Stupidity** checkbox
+- **Artificial Stupidity** level slider
+
+When the checkbox is **off**, MCTS runs in its strongest project configuration:
+
+- the teaching-oriented imperfection layer is disabled
+- tactical guardrails remain active
+- the behavior should be sharper and more consistent
+
+When the checkbox is **on**, the slider controls how much visible imperfection is allowed after the search.
+
+- lower values: only slight softening of the final choice
+- higher values: much looser and more visibly imperfect play
+
+Artificial Stupidity levels are:
+
+- `Super Low`: almost no added imperfection
+- `Low`
+- `Medium`
+- `High`
+- `Extra High`: the loosest, most visibly imperfect setting
 
 Because this project includes controlled imperfection at low settings, this mode also helps explain why game AI is often designed for **believability and adjustability**, not only maximum strength.
+
+### PC vs PC
+
+Use this mode to demonstrate:
+
+- algorithm-versus-algorithm observation without human interaction
+- side-by-side comparisons such as `Algo vs MCTS` or `MCTS vs MCTS`
+- how board size, simulation budget, and move cadence affect visible behavior
+- how telemetry accumulates during long automated runs
+
+The user can configure:
+
+- the strategy for `X`
+- the strategy for `O`
+- separate `X Bot` and `O Bot` setup panels
+- separate MCTS simulation counts for each side when needed
+- separate Artificial Stupidity levels for each MCTS side when needed
+- autoplay speed from slow observation to fast automated play
+- manual `Start` / `Pause` control so the mode stays idle until the user explicitly starts the match
+
+This mode is especially useful together with the `Algorithm Monitor`, because it produces clean comparative data without requiring user play.
+
+### Levels and win conditions
+
+The game supports levels from `3x3` to `6x6`.
+
+The ruleset is:
+
+- `3x3` uses the classic `3x3` board with `3 in a row` to win
+- `4x4` through `6x6` use a larger `10x10` board
+- the selected level tells the player how many marks are needed in a row to win
+
+Examples:
+
+- `4x4` means `4 in a row` on a `10x10` board
+- `6x6` means `6 in a row` on a `10x10` board
+
+This produces more open positions, fewer early draw states, and a more interesting strategy space than using literal `4x4`, `5x5`, or `6x6` boards.
 
 ## Minimax vs MCTS
 
@@ -148,19 +232,20 @@ Because this project includes controlled imperfection at low settings, this mode
 |---|---|---|
 | Core idea | Exhaustive search | Simulation-based search |
 | Behavior | Deterministic | Probabilistic |
-| Strength | Perfect in Tic-Tac-Toe | Depends on simulation budget |
+| Strength | Exact on `3x3`, heuristic on larger boards | Depends on simulation budget |
 | Difficulty | Fixed | Adjustable |
 | Mistakes | Never | Possible, especially at low settings |
-| Classroom value | Explains optimal play | Explains AI tradeoffs and behavior |
+| Classroom value | Explains optimal play and search limits | Explains AI tradeoffs and behavior |
 
 ## Project Structure
 
 The implementation is intentionally organized as an educational codebase, not just a quick prototype.
 
-- `model`: board state, players, game mode, start mode, score state
-- `ai`: strategy abstraction plus `Minimax` and `MCTS`
-- `controller`: game flow, mode switching, starter selection, scoreboard, AI turn handling
-- `ui`: Swing window, board rendering, theme switching, win effects, background AI execution
+- `model`: board state, players, selected level, start mode, score state
+- `ai`: strategy abstraction plus exact/heuristic algo search and `MCTS`
+- `controller`: game flow, mode switching, starter selection, scoreboard, AI turn handling, and PC-vs-PC autoplay
+- `ui`: Swing window, level selection, dynamic board rendering, theme switching, win effects, PC-vs-PC controls, and background AI execution
+- `monitor`: research-oriented telemetry window with live charts, move history, and comparison summaries
 
 For the full design breakdown, see [Project_Structure.md](Project_Structure.md).
 
@@ -183,11 +268,38 @@ For the broader application flow, see:
 - [GameController.java](src/main/java/com/ai/tictactoe/controller/GameController.java)
 - [Project_Structure.md](Project_Structure.md)
 
+## Algorithm Monitor
+
+The application includes a separate `Algorithm Monitor` window for research-oriented observation.
+
+It combines:
+
+- `Live View`: process CPU and heap charts, current move timing, and algorithm-specific telemetry
+- `Move History`: per-move records including response time, CPU delta, heap delta, chosen move, and game phase
+- `Summary`: aggregated comparisons across `MCTS`, exact `Minimax`, and heuristic `Minimax`
+
+This makes it easier to study not only which move an algorithm chose, but also:
+
+- how expensive the search was
+- how many nodes or simulations were used
+- how candidate moves compared internally
+- how behavior changes across board sizes and simulation budgets
+
 ## Features
 
 - Java Swing desktop UI
 - `Minimax` and `MCTS` gameplay modes
+- `PC vs PC` autoplay mode with `Algo` / `MCTS` configuration for both sides
+- level selector from `3x3` to `6x6`
+- `10x10` board for levels above `3x3`
 - MCTS simulation slider
+- Artificial Stupidity slider with five levels
+- per-side MCTS levels for `PC vs PC`
+- per-side Artificial Stupidity levels for `PC vs PC`
+- autoplay speed slider for automated matches
+- on-demand `Show AI Move` hint for flashing the last computer move
+- `Algorithm Monitor` window with live system charts, per-move analytics, and research summaries
+- menu-driven access to the monitor, theme switching, about dialog, and metrics documentation
 - selectable starting player:
   - `Always Human`
   - `Always Pc`

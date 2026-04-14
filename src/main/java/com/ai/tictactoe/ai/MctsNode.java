@@ -60,9 +60,20 @@ public final class MctsNode {
         return untriedMoves.isEmpty();
     }
 
+    public List<Integer> getUntriedMoves() {
+        return List.copyOf(untriedMoves);
+    }
+
     public MctsNode expand(Random random) {
         int moveIndex = random.nextInt(untriedMoves.size());
         int nextMove = untriedMoves.remove(moveIndex);
+        return expandMove(nextMove);
+    }
+
+    public MctsNode expandMove(int nextMove) {
+        if (!untriedMoves.remove(Integer.valueOf(nextMove))) {
+            throw new IllegalArgumentException("Move " + nextMove + " is not available for expansion.");
+        }
         Player mover = board.getCurrentPlayer();
         MctsNode child = new MctsNode(board.makeMove(nextMove), this, nextMove, mover);
         children.add(child);
