@@ -226,6 +226,8 @@ Examples:
 
 This produces more open positions, fewer early draw states, and a more interesting strategy space than using literal `4x4`, `5x5`, or `6x6` boards.
 
+![10x10 Board](assets/10x10Board.png)
+
 ## Minimax vs MCTS
 
 | Feature | Minimax | MCTS in this project |
@@ -284,6 +286,8 @@ This makes it easier to study not only which move an algorithm chose, but also:
 - how many nodes or simulations were used
 - how candidate moves compared internally
 - how behavior changes across board sizes and simulation budgets
+
+![Algorithm Monitor](assets/monitoring.png)
 
 ## Features
 
